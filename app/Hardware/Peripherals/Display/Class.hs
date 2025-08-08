@@ -1,21 +1,20 @@
-module Oled where
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE KindSignatures #-}
+module Hardware.Display.Class where
 
 import Data.ByteString
 import Data.Array
 
 type Buffer p = Array Int p
 
-
-class Pixel where
-  getBytes = ByteString
-  getIntensity = Byte 
+class Pixel p where
+  getBytes :: p -> ByteString
+  getIntensity :: p -> Int
 
 --TODO: implement elegant failure and error messages
 class Monad m, Pixel p => DisplayController a p where
   getResolution :: a -> (Int,Int)
-  drawPixel :: a -> (Int, Int) -> m ()
+  drawPixel :: a  -> p -> (Int, Int) -> m ()
   draw :: a -> Buffer p -> m ()
   clear :: a -> m ()
 

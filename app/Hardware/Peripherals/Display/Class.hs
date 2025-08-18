@@ -12,7 +12,7 @@ class Pixel p where
   getIntensity :: p -> Int
 
 --TODO: implement elegant failure and error messages
-class Monad m, Pixel p => DisplayController a p where
+class (Monad m, Pixel p) => DisplayController a p where
   getResolution :: a -> (Int,Int)
   drawPixel :: a  -> p -> (Int, Int) -> m ()
   draw :: a -> Buffer p -> m ()

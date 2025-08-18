@@ -1,5 +1,12 @@
 {-#LANGUAGE RecordWildCards #-}
-module Hardware.Protocol.I2C where
+module Hardware.Protocol.I2C
+  ( I2CDev
+  , write
+  , read
+  , rw
+  , decodeBytes
+  )
+where
 
 import Control.Concurrent
 import System.RaspberryPi.GPIO
@@ -23,18 +30,17 @@ serial =  toStrict . encode
 deserial :: Binary a => ByteString -> a
 deserial = decode . fromStrict 
 
-decodeBytes :: IO ByteString -> IO ByteString
+decodeBytes :: IO ByteString -> IO a
 decodeBytes bytesio = bytesio >>= return . deserial 
 
 write :: Binary a => I2CDev -> a -> IO ()
 write I2CDev{..} a = writeI2C addr $ serial a
 
 read :: I2CDev -> Int -> IO ByteString
-read I2CDev{..} c = decodeBytes $ readI2C addr c
+read I2CDev{..} c = readI2C addr c
   
 rw ::  Binary a => I2CDev -> a -> Int -> IO ByteString
-rw I2CDev{..} input bytes =
-  decodeBytes $ writeReadRSI2C addr (serial input) bytes 
+rw I2CDev{..} input bytes = writeReadRSI2C addr (serial input) bytes 
 
 
 {-

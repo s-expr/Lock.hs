@@ -7,7 +7,6 @@ newtype SSD1306I2C = SSD1306I2C { dev :: I2CDev }
 
 instance SSD1306Com SSD1306I2C where
   
-  
 
 disp :: Addr -> I2CDev
 disp addr = I2CDev  addr "oled"

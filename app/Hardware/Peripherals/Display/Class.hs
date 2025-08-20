@@ -1,15 +1,11 @@
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE KindSignatures #-}
+{-#LANGUAGE ConstraintKinds #-}
+{-#LANGUAGE KindSignatures #-}
 module Hardware.Display.Class where
 
 import Data.ByteString
 import Data.Array
 
 type Buffer p = Array Int p
-
-class Pixel p where
-  getBytes :: p -> ByteString
-  getIntensity :: p -> Int
 
 --TODO: implement elegant failure and error messages
 class (Monad m, Pixel p) => DisplayController a p where

@@ -1,4 +1,4 @@
-module Hardware.Peripherals.SSD136.Class where
+module Hardware.Peripherals.SSD1306.Class where
 
 import Hardware.Display.Class
 import Data.ByteString 
@@ -6,11 +6,6 @@ import Data.Word
 
 type Page = Word8
 type AddrRange = (Word8, Word8)
-
-data BoolPixel
-     = Off
-     | On
-     deriving (Show, Enum)
 
 data Scroll
   = Left
@@ -30,19 +25,11 @@ data AddrMode
   | Paging
   deriving (Show, Enum)
 
-instance Binary BoolPixel where
-  put p = putWord8 $ (fromIntegral . fromEnum) p
-  get =  getWord8 >>= toIntegral >>= toEnum
-
-instance Pixel BoolPixel where
-  getBytes = toStrict . encode . fromEnum 
-  getIntensity = (255 *) . fromEnum 
-  
 instance (SSD1306Com c) => DisplayController c where
   getResolution :: c -> m (Int, Int)
   getResolution _ = return (128, 64)
   drawPixel :: c  -> p -> (Int, Int) -> m ()
-  drawPixel com =  
+  drawPixel com = _ 
   draw :: c -> Buffer p -> m ()
   clear :: c -> m ()
 

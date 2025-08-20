@@ -3,72 +3,49 @@ module Hardware.Protocol.I2C
   ( I2CDev
   , write
   , read
+  , readByte
   , rw
-  , decodeBytes
   )
 where
 
-import Control.Concurrent
+import Control.Monad.Free
 import System.RaspberryPi.GPIO
 import Data.Word
 import Data.ByteString 
 import Data.ByteString.Lazy (toStrict, fromStrict)
 import Data.Binary 
-
-
-type Byte = Word8
-type Addr = Word8
+import Util
 
 data I2CDev = I2CDev
   { addr :: Addr
   , name :: String
   }
 
-serial :: Binary a => a -> ByteString
-serial =  toStrict . encode
+newtype I2CProgF next = I2CProgF {runProgF :: I2CDev -> IO next}
+instance Functor I2CProgF where 
+  fmap f (I2CProgF p) = I2CProgF (fmap f . p)
+type I2CProg a = Free I2CProgF a
 
-deserial :: Binary a => ByteString -> a
-deserial = decode . fromStrict 
+fmap Pure :: I2CProgF a -> I2CProgF (Free I2CProgF a) 
 
-decodeBytes :: IO ByteString -> IO a
-decodeBytes bytesio = bytesio >>= return . deserial 
+mkProg :: (I2CDev -> IO a) -> I2CProg a
+mkProg = liftF . I2CProgF 
 
-write :: Binary a => I2CDev -> a -> IO ()
-write I2CDev{..} a = writeI2C addr $ serial a
+write :: Binary a => a -> I2CProg ()
+write a = mkProg $ flip writeI2C (serial a) . addr
 
-read :: I2CDev -> Int -> IO ByteString
-read I2CDev{..} c = readI2C addr c
+readByte :: I2CProg ByteString
+readByte = mkProg $ flip readI2C 1 . addr
+
+read :: Int -> I2CProg ByteString
+read numBytes = mkProg $ flip readI2C numBytes . addr
   
-rw ::  Binary a => I2CDev -> a -> Int -> IO ByteString
-rw I2CDev{..} input bytes = writeReadRSI2C addr (serial input) bytes 
+rw ::  Binary a => a -> Int -> I2CProg ByteString
+rw a bytes = 
+  mkProg $ \dev -> 
+    writeReadRSI2C (addr dev) (serial a) bytes 
 
-
-{-
-exec :: Command -> IO b
-exec c = case c of
-  Write d toWrite -> writeI2C addr' toWrite >> return ()
-  Read d c -> decodeBytes $ readI2C addr' c 
-  WriteRead d toWrite c -> decodeBytes $ writeReadRSI2C addr' c
-  where 
-    addr' = addr d
-    decodeBytes bytesio = do
-      bytes <- bytesio
-      return $ decode $ fromStrict bytes
--}
-{-    
---rewrite using fold
-execI2C :: Binary a => [Command a] -> IO [ByteString]
-execI2C [] = return []
-execI2C (cmd : xs) = process cmd
+runI2C :: I2CProg a -> I2CDev -> IO a
+runI2C p dev =  iterM step
   where
-    appendRead bs = do
-      bs1 <- bs
-      bs2 <- runI2C dev xs
-      bs1 : bs2
-    addr' = addr dev
-    process Write(dev, a, toWrite) = writeI2C addr' args >> runI2C dev xs
-    process Read(dev, int, args) = appendRead $ readI2C addr' args 
-    process WriteRead(dev, cmd, args, amt) = appendRead $ writeReadRSI2C addr' args amt
-    where
-      addr' = addr dev
--}
+  step (I2CProgF p) = p dev

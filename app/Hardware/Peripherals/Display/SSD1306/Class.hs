@@ -1,6 +1,6 @@
-module Hardware.Peripherals.SSD1306.Class where
+module Hardware.Peripherals.Display.SSD1306.Class where
 
-import Hardware.Display.Class
+import Hardware.Peripherals.Display.Class
 import Data.ByteString 
 import Data.Word 
 
@@ -25,20 +25,22 @@ data AddrMode
   | Paging
   deriving (Show, Enum)
 
+{-
 instance (SSD1306Com c) => DisplayController c where
   getResolution :: c -> m (Int, Int)
   getResolution _ = return (128, 64)
   drawPixel :: c  -> p -> (Int, Int) -> m ()
-  drawPixel com = _ 
+  drawPixel com = undefined
   draw :: c -> Buffer p -> m ()
   clear :: c -> m ()
+-}
 
-class (Monad m) => SSD1306Com a where
-  writeScanning :: Word8 -> m ()
+class SSD1306Com a where
+  writeScanning :: a -> Word8 -> m ()
   readPage :: a -> m Page
   initDisplay :: a -> AddrMode -> AddrRange -> m a
-  setScroll :: a -> ScrollMode -> m a
+  setScroll :: a -> Scroll -> m a
   setAddrMode :: a -> m a
   
-withDisplayController :: 
-withDisplayController = _
+withDisplayController :: undefined 
+withDisplayController = undefined

@@ -2,6 +2,7 @@ module Hardware.Peripherals.Display.Pixel.BoolPixel where
 
 import Class
 import Data.Binary
+import Hardware.Peripherals.Display.Pixel.Class
 
 data BoolPixel
      = Off

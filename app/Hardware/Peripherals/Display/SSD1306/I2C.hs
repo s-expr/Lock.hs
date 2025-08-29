@@ -1,49 +1,74 @@
-module Hardware.Peripherals.SSD1306.I2C where
+{-#LANGUAGE BinaryLiterals #-}
+module Hardware.Peripherals.Display.SSD1306.I2C where
 
 import Hardware.Protocol.I2C
-import Hardware.Peripherals.SSD1306.Class
+import Hardware.Protocol.Util
+import Hardware.Peripherals.Display.SSD1306.Class
+import Data.Bits
+import Foreign.Marshal.Utils
 
-newtype SSD1306I2C = SSD1306I2C { dev :: I2CDev }
 
-instance SSD1306Com SSD1306I2C where
-  
+newtype SSD1306 = SSD1306 { dev :: I2CDev }
 
-disp :: Addr -> I2CDev
-disp addr = I2CDev  addr "oled"
+data Msg 
+  = Data [Byte]
+  | Cmd [Byte]
 
-newCom :: Int -> SSD1306
-newCom addr = SSD1306 . (disp $ byte addr)
+runCmd :: SSD1306 -> I2CProg a -> IO a
+runCmd (SSD1306 dev) = runI2C dev  
 
-byte = fromIntegral
-bytes xs = byte <$> xs
+disp :: Addr -> SSD1306
+disp addr = SSD1306 $ I2CDev addr "oled"
 
-off :: I2CDev ->  IO ()
-off d = write d $ byte 0xAE
+newController :: SSD1306 
+newController = disp 0x3D 
+
+transmit :: Msg -> I2CProg ()
+transmit msg = write $ MsgList (ctrlByte msg)
+  where 
+    ctrlByte :: Msg -> [Byte]
+    ctrlByte (Data msg) = 0b01000000 : msg
+    ctrlByte (Cmd msg) = 0b00000000 : msg
+
+cmd :: [Byte] -> I2CProg ()
+cmd = transmit . Cmd 
+
+opt :: Byte -> Int -> Bool -> Byte
+opt byte bitSel should = 
+  byte .|. shiftL (fromBool should) bitSel
+
+sleep :: I2CProg ()
+sleep = cmd [0xAE]
  
-on :: I2CDev ->  IO ()
-on d = write d $ byte 0xAF
+wake :: I2CProg ()
+wake = cmd [0xAF]
 
-reset :: I2CDev -> IO ()
+externalPower :: Bool -> I2CProg () 
+externalPower b = do
+  cmd [0x8D, opt 0x10 2 b]
+
+writePixels :: ByteString -> I2CProg ()
+writePixels = undefined
+
+setContrast :: Byte -> I2CProg ()
+setContrast contrast = write (0x81::Byte, contrast)
+
+fullBright :: Bool -> I2CProg ()
+fullBright b = cmd [opt 0xA4 0 b]
+
+invert :: Bool -> I2CProg ()
+invert b = cmd [opt 0xA7 0 b]
+  
+reset :: I2CProg ()
 reset = do
-  off
-  on
+  sleep
+  wake
 
-activate :: I2CDev -> IO () 
-activate d = do
-  where
-    read'  = read d
-    write' :: Binary a => a -> IO ()
-    write' = write d
-    rw' :: Binary a => a -> Int -> IO ByteString
-    rw'    = rw d
+activate :: I2CProg () 
+activate = do 
+  wake
 
-deactivate :: I2CDev -> IO ()
-deactivate d = do
-  return ()
-  where
-    read'  = read d
-    write' :: Binary a => a -> IO ()
-    write' = write d
-    rw' :: Binary a => a -> Int -> IO ByteString
-    rw'    = rw d
-
+deactivate :: I2CProg ()
+deactivate = do
+  sleep
+  

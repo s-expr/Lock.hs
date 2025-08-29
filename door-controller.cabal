@@ -29,6 +29,9 @@ executable door-controller
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
-    build-depends:    binary, bytestring, HPi,base ^>=4.15.1.0
+    build-depends:    h-raylib, JuicyPixels, unix, array, free, binary, bytestring, HPi,base ^>=4.15.1.0
     hs-source-dirs:   app 
     default-language: Haskell2010
+    extra-libraries: bcm2835, cap
+    extra-lib-dirs: /usr/local/lib
+    include-dirs:   /usr/local/include
